@@ -89,3 +89,23 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//Sets the tickets number for scheduler policy, to the current process
+int
+sys_set_tickets(void)
+{
+  int tickets;
+  
+  //Invalid tickets set call
+  if(argint(0, &tickets) < 0)
+    return -1;
+
+  struct proc *curproc = myproc();
+  curproc->tickets = tickets;
+
+  //Check if process tickets are set correctly, if not return -1 as expected
+  if(curproc->tickets != tickets)
+    return -1;
+
+  return 0;
+}
