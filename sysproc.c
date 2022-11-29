@@ -113,6 +113,31 @@ sys_set_tickets(void)
 int
 sys_wait2(void)
 {
-  //Implement wait2 syscall
-  return 10;
+  int retime;
+  int rutime;
+  int stime;
+
+  struct proc *curproc = myproc();
+
+  argint(0, &retime);
+  argint(0, &rutime);
+  argint(0, &stime);
+
+  curproc->retime = retime;
+  curproc->rutime = rutime;
+  curproc->stime = stime;
+
+  if(curproc->retime != retime){
+    return -1;
+  }
+
+  if(curproc->rutime != rutime){
+    return -1;
+  }
+
+  if(curproc->stime != stime){
+    return -1;
+  }
+
+  return 0;
 }

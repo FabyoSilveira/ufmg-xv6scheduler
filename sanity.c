@@ -12,7 +12,7 @@ int main(void)
   int *x = &b;
   int *z = &c;
   
-  printf(1, "\nIf return 10 is working: %d\n", wait2(p, x, z));
+  printf(1, "\nIf return 0 is working: %d\n", wait2(p, x, z));
 
   exit();
 }
