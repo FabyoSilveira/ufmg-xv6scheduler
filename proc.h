@@ -55,6 +55,7 @@ struct proc {
   int stime;                   // Tempo SLEEPING
   int retime;                  // Tempo READY(RUNNABLE) time
   int rutime;                  // Tempo executando (RUNNING)
+  int startRunning;            // Tempo em que o processo começa a executar
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -109,3 +109,10 @@ sys_set_tickets(void)
 
   return 0;
 }
+
+int
+sys_wait2(void)
+{
+  //Implement wait2 syscall
+  return 10;
+}

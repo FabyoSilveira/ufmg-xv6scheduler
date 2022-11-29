@@ -88,6 +88,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->tickets = 5;
+  p->ctime = ticks;
 
   release(&ptable.lock);
 
@@ -342,6 +344,7 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      p->startRunning = ticks;
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -385,10 +388,12 @@ sched(void)
 void
 yield(void)
 {
-  acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE;
-  sched();
-  release(&ptable.lock);
+  if(ticks - myproc()->startRunning >= INTERV){
+    acquire(&ptable.lock);  //DOC: yieldlock
+    myproc()->state = RUNNABLE;
+    sched();
+    release(&ptable.lock);
+  }
 }
 
 // A fork child's very first scheduling by scheduler()
