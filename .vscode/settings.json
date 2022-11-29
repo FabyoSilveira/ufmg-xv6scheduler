@@ -2,6 +2,7 @@
   "files.associations": {
     "types.h": "c",
     "defs.h": "c",
-    "user.h": "c"
+    "user.h": "c",
+    "proc.h": "c"
   }
 }
