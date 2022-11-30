@@ -58,6 +58,8 @@ struct proc {
   int startRunning;            // Tempo em que o processo começa a executar
 };
 
+void updateRuReSTime();
+
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss

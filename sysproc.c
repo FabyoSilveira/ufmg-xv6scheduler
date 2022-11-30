@@ -113,31 +113,40 @@ sys_set_tickets(void)
 int
 sys_wait2(void)
 {
-  int retime;
-  int rutime;
-  int stime;
+  int *retime;
+  int *rutime; 
+  int *stime;
+  
+  if (argptr(0, (void*)&retime, sizeof(retime)) < 0)
+    return -1;
+  if (argptr(1, (void*)&rutime, sizeof(retime)) < 0)
+    return -1;
+  if (argptr(2, (void*)&stime, sizeof(stime)) < 0)
+    return -1;
 
   struct proc *curproc = myproc();
 
-  argint(0, &retime);
-  argint(0, &rutime);
-  argint(0, &stime);
+  *retime = curproc->retime;
+  *rutime = curproc->rutime;
+  *stime = curproc->stime;
 
-  curproc->retime = retime;
-  curproc->rutime = rutime;
-  curproc->stime = stime;
-
-  if(curproc->retime != retime){
+  if(curproc->retime != *retime){
     return -1;
   }
 
-  if(curproc->rutime != rutime){
+  if(curproc->rutime != *rutime){
     return -1;
   }
 
-  if(curproc->stime != stime){
+  if(curproc->stime != *stime){
     return -1;
   }
 
+  return 0;
+}
+
+//Yield syscall
+int sys_yield(void) {
+  yield();
   return 0;
 }

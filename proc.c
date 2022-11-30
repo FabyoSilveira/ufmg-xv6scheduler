@@ -90,6 +90,9 @@ found:
   p->pid = nextpid++;
   p->tickets = 5;
   p->ctime = ticks;
+  p->retime = 0;
+  p->rutime = 0;
+  p->stime = 0;
 
   release(&ptable.lock);
 
@@ -536,4 +539,26 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+// Function to be called every clock tick, and update required infos about the process
+void updateRuReSTime() {
+  struct proc *curProc;
+  acquire(&ptable.lock);
+  for(curProc = ptable.proc; curProc < &ptable.proc[NPROC]; curProc++){
+    switch(curProc->state) {
+      case SLEEPING:
+        curProc->stime++;
+        break;
+      case RUNNABLE:
+        curProc->retime++;
+        break;
+      case RUNNING:
+        curProc->rutime++;
+        break;
+      default:
+        break;
+    }
+  }
+  release(&ptable.lock);
 }
