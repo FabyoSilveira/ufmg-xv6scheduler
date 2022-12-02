@@ -23,3 +23,4 @@
 #define SYS_set_tickets 22
 #define SYS_wait2 23
 #define SYS_yield 24
+#define SYS_getZombieChildsInfo 25

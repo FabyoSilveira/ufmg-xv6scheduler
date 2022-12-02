@@ -106,6 +106,8 @@ extern int sys_uptime(void);
 extern int sys_set_tickets(void);
 extern int sys_wait2(void);
 extern int sys_yield(void);
+extern int sys_getZombieChildsInfo(void);
+
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -132,6 +134,7 @@ static int (*syscalls[])(void) = {
 [SYS_set_tickets]   sys_set_tickets,
 [SYS_wait2]   sys_wait2,
 [SYS_yield]   sys_yield,
+[SYS_getZombieChildsInfo]   sys_getZombieChildsInfo,
 };
 
 void

@@ -15,6 +15,10 @@ struct {
 static struct proc *initproc;
 
 int nextpid = 1;
+
+//Important to know when 5 ticks has passed to allow preemption
+int trackTick = 0;
+
 extern void forkret(void);
 extern void trapret(void);
 
@@ -347,7 +351,6 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-      p->startRunning = ticks;
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -391,7 +394,10 @@ sched(void)
 void
 yield(void)
 {
-  if(ticks - myproc()->startRunning >= INTERV){
+  if(ticks%INTERV == 0 && trackTick != ticks){  
+    //Since yield executes sometimes more than once per tick, need to track the last time ticks was fully divisible by 5, our preemption interval
+    trackTick = ticks;
+
     acquire(&ptable.lock);  //DOC: yieldlock
     myproc()->state = RUNNABLE;
     sched();
@@ -561,4 +567,53 @@ void updateRuReSTime() {
     }
   }
   release(&ptable.lock);
+}
+
+int getZombieChildsInfoProc(int *retime, int *rutime, int *stime, int *pid) {
+  struct proc *p;
+  int flagHasChildren;
+
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for zombie children.
+    flagHasChildren = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc)
+        continue;
+      flagHasChildren = 1;
+      // Found a zombie child
+      if(p->state == ZOMBIE){
+        *retime = p->retime;
+        *rutime = p->rutime;
+        *stime = p->stime;
+        *pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->ctime = 0;
+        p->retime = 0;
+        p->rutime = 0;
+        p->stime = 0;
+        p->priority = 0;
+        release(&ptable.lock);
+        return 0;
+      }
+    }
+
+    // No children found
+    if(!flagHasChildren || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait children
+    sleep(curproc, &ptable.lock);
+  }
 }

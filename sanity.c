@@ -1,162 +1,111 @@
 #include "types.h"
-#include "stat.h"
 #include "user.h"
 
 #define CPU_BOUND 0
 #define S_CPU 1
 #define IO_BOUND 2
 
-struct procMetrics{
-  int totalSleepingTime;
-  int totalReadyTime;
-  int totalTurnaroundTime;
-  int qtdProc;
-} procMetrics_constructor = {0, 0, 0, 0};
-
-typedef struct procMetrics procMetrics;
-
-int main(void) 
-{ 
-  procMetrics *CPU_bound_procs = &procMetrics_constructor;
-  procMetrics *S_cpu_procs = &procMetrics_constructor;
-  procMetrics *IO_bound_procs = &procMetrics_constructor;
-  
-  int pid;
-  int procType;
-  int totalProcesses = 3;
-
-  int retime;
-  int rutime;
-  int stime;
-
-  int arrProcInfo[5];
-  int arrParentReceiveInfo[5];
-
-  //Create a pipe to allow child process, communicate with parent their infos after finish the execution
-  int fd[2];
-  pipe(fd);
-
-  for(int createdProcesses = 0; createdProcesses < totalProcesses; createdProcesses++){
-    //Create new process
-    pid = fork();
-
-    if(pid == 0){
-      //Check that fork suceed
-      if(pid < 0){
-        printf(1, "\nFork has failed, killing process...\n");
-        exit();
-      }
-
-      //Get proc type, specified at TP command
-      procType = getpid()%3;
-
-      //close read channel of pipe since child's only writes
-      close(fd[0]);
-      close(1);
-      
-      switch(procType){
-        case CPU_BOUND:
-          for(int x = 0; x < 100; x++){
-            for(int y = 0; y < 10000000; y++){
-              continue;
-            }
-            continue;
-          }
-          wait2(&retime, &rutime, &stime);
-
-          //Info about, respectively, what proc type has executed and retime, rutime, stime and childPid
-          arrProcInfo[0] = 0;
-          arrProcInfo[1] = retime;
-          arrProcInfo[2] = rutime;
-          arrProcInfo[3] = stime;
-          arrProcInfo[4] = getpid();
-
-          //Write info into fathers pipe
-          dup(fd[1]);  
-          write(1, arrProcInfo, sizeof(arrProcInfo));
-          break;
-
-        case S_CPU:
-          for(int x = 0; x < 100; x++){
-            for(int y = 0; y < 1000000; y++){
-              continue;
-            }
-            yield();
-          }
-          wait2(&retime, &rutime, &stime);
-
-          //Info about, respectively, what proc type has executed and retime, rutime, stime and childPid
-          arrProcInfo[0] = 1;
-          arrProcInfo[1] = retime;
-          arrProcInfo[2] = rutime;
-          arrProcInfo[3] = stime;
-          arrProcInfo[4] = getpid();
-  
-          //Write info into fathers pipe
-          dup(fd[1]);  
-          write(1, arrProcInfo, sizeof(arrProcInfo));
-          break;
-
-        case IO_BOUND:
-          for(int x = 0; x < 100; x++){
-            sleep(1);
-          }
-          wait2(&retime, &rutime, &stime);
-
-          //Info about, respectively, what proc type has executed and retime, rutime, stime and childPid
-          arrProcInfo[0] = 2;
-          arrProcInfo[1] = retime;
-          arrProcInfo[2] = rutime;
-          arrProcInfo[3] = stime;
-          arrProcInfo[4] = getpid();
-
-          //Write info into fathers pipe
-          dup(fd[1]);  
-          write(1, arrProcInfo, sizeof(arrProcInfo));
-          break;
-      }
-      exit();
-    }else{
-      //Important to execute father after child and pipe read/write works
-      wait();
-
-      //printf(1, "\nWait working or not%d %d %d %d\n", wait2(&retime, &rutime, &stime), retime, rutime, stime);
-      
-      //close write channel of pipe since parent's only reads
-      close(0);
-      close(fd[1]);     
-
-      read(fd[0], arrParentReceiveInfo, sizeof(arrParentReceiveInfo));
-
-      switch(arrParentReceiveInfo[0]){
-        case CPU_BOUND:
-          //Increment cpu bound counter
-          CPU_bound_procs->qtdProc++;
-
-          //Print proc info after finish
-          printf(1, "\nPID-%d CPU-Bound / Tempo de espera - %d Tempo executando - %d Tempo de IO - %d\n", arrParentReceiveInfo[4], arrParentReceiveInfo[1], arrParentReceiveInfo[2], arrParentReceiveInfo[3]);
-          break;
-
-        case S_CPU:
-          //Increment s bound counter
-          S_cpu_procs->qtdProc++;
-
-          //Print proc info after finish
-          printf(1, "\nPID-%d S-Bound / Tempo de espera - %d Tempo executando - %d Tempo de IO - %d\n", arrParentReceiveInfo[4], arrParentReceiveInfo[1], arrParentReceiveInfo[2], arrParentReceiveInfo[3]);
-          break;
-
-        case IO_BOUND:
-          //Increment io bound counter
-          IO_bound_procs->qtdProc++;
-          
-          //Print proc info after finish
-          printf(1, "\nPID-%d IO-Bound / Tempo de espera - %d Tempo executando - %d Tempo de IO - %d\n", arrParentReceiveInfo[4], arrParentReceiveInfo[1], arrParentReceiveInfo[2], arrParentReceiveInfo[3]);
-          break;
-      }
-    }
-    
+int
+main(int argc, char *argv[])
+{
+	if (argc != 2){
+    printf(1, "Usage: sanity <n>\n");
+    exit();
   }
 
-  //printf(1, "\nTerminei, CPUqtd: %d - Sqtd: %d - IOqtd: %d\n", CPU_bound_procs->qtdProc, S_cpu_procs->qtdProc, IO_bound_procs->qtdProc);
+	int i;
+	int n;
+	int j = 0;
+	int k;
+	int retime;
+	int rutime;
+	int stime;
+	int sums[3][3];
+  int flagSuccessGetChildInfo;
+
+	for (i = 0; i < 3; i++)
+		for (j = 0; j < 3; j++)
+			sums[i][j] = 0;
+
+	n = atoi(argv[1]);
+	i = n; //unimportant
+
+	int pid;
+
+	for (i = 0; i < 3 * n; i++) {
+		j = i % 3;
+		pid = fork();
+
+		if (pid == 0) {//child
+			j = (getpid() - 4) % 3; // ensures independence from the first son's pid when gathering the results in the second part of the program
+			switch(j) {
+				case CPU_BOUND: //CPU‐bound process (CPU):
+					for (k = 0; k < 100; k++){
+						for (j = 0; j < 1000000; j++){}
+					}
+
+          wait2(&retime, &rutime, &stime);
+          printf(1, "CPU-bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
+          
+					break;
+				case S_CPU: //short tasks based CPU‐bound process (S‐CPU):
+					for (k = 0; k < 100; k++){
+						for (j = 0; j < 1000000; j++){}
+						yield();
+					}
+
+          wait2(&retime, &rutime, &stime);
+          printf(1, "CPU-S bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
+
+					break;
+				case IO_BOUND:// simulate I/O bound process (IO)
+					for(k = 0; k < 100; k++){
+						sleep(1);
+					}
+
+          wait2(&retime, &rutime, &stime);
+          printf(1, "I/O bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
+
+					break;
+			}
+			exit(); // children exit here
+		}
+		continue; // father continues to spawn the next child
+	}
+
+	for (i = 0; i < 3 * n; i++) {
+		flagSuccessGetChildInfo = getZombieChildsInfo(&retime, &rutime, &stime, &pid);
+
+    if(flagSuccessGetChildInfo == 0){
+      int res = (pid - 4) % 3; // correlates to j in the dispatching loop
+
+      switch(res) {
+        case CPU_BOUND: // CPU bound processes
+          sums[0][0] += retime;
+          sums[0][1] += rutime;
+          sums[0][2] += stime;
+          break;
+        case S_CPU: // CPU bound processes, short tasks
+          sums[1][0] += retime;
+          sums[1][1] += rutime;
+          sums[1][2] += stime;
+          break;
+        case IO_BOUND: // simulating I/O bound processes       
+          sums[2][0] += retime;
+          sums[2][1] += rutime;
+          sums[2][2] += stime;
+          break;
+      }
+    }	
+	}
+
+	for (i = 0; i < 3; i++)
+		for (j = 0; j < 3; j++)
+			sums[i][j] /= n;
+
+	printf(1, "\n\nCPU bound:\nAverage ready time: %d\nAverage running time: %d\nAverage sleeping time: %d\nAverage turnaround time: %d\n\n\n", sums[0][0], sums[0][1], sums[0][2], sums[0][0] + sums[0][1] + sums[0][2]);
+	printf(1, "CPU-S bound:\nAverage ready time: %d\nAverage running time: %d\nAverage sleeping time: %d\nAverage turnaround time: %d\n\n\n", sums[1][0], sums[1][1], sums[1][2], sums[1][0] + sums[1][1] + sums[1][2]);
+	printf(1, "I/O bound:\nAverage ready time: %d\nAverage running time: %d\nAverage sleeping time: %d\nAverage turnaround time: %d\n\n\n", sums[2][0], sums[2][1], sums[2][2], sums[2][0] + sums[2][1] + sums[2][2]);
+	
   exit();
 }

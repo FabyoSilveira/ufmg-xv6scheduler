@@ -55,10 +55,10 @@ struct proc {
   int stime;                   // Tempo SLEEPING
   int retime;                  // Tempo READY(RUNNABLE) time
   int rutime;                  // Tempo executando (RUNNING)
-  int startRunning;            // Tempo em que o processo começa a executar
 };
 
 void updateRuReSTime();
+int getZombieChildsInfoProc(int*, int*, int*, int*); 
 
 // Process memory is laid out contiguously, low addresses first:
 //   text

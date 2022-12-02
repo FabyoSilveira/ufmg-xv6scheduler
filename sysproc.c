@@ -145,6 +145,27 @@ sys_wait2(void)
   return 0;
 }
 
+int sys_getZombieChildsInfo(void) {
+  int *retime;
+  int *rutime;
+  int *stime;
+  int *pid;
+
+  if (argptr(0, (void*)&retime, sizeof(retime)) < 0)
+    return -1;
+
+  if (argptr(1, (void*)&rutime, sizeof(retime)) < 0)
+    return -1;
+
+  if (argptr(2, (void*)&stime, sizeof(stime)) < 0)
+    return -1;
+
+  if (argptr(3, (void*)&pid, sizeof(pid)) < 0)
+    return -1;
+
+  return getZombieChildsInfoProc(retime, rutime, stime, pid);
+}
+
 //Yield syscall
 int sys_yield(void) {
   yield();
