@@ -46,7 +46,7 @@ main(int argc, char *argv[])
 
           wait2(&retime, &rutime, &stime);
           printf(1, "CPU-bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
-          
+
 					break;
 				case S_CPU: //short tasks based CPU‐bound process (S‐CPU):
 					for (k = 0; k < 100; k++){
