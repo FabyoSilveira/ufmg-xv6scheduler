@@ -334,14 +334,18 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  #ifdef DEFAULT
+  cprintf("\nFUNCIONOU\n");
+  #endif
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      //If no scheduler was chosen run the default, need to make ifdef work
       if(p->state != RUNNABLE)
         continue;
 
@@ -358,6 +362,17 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+
+      #ifdef LOTERY
+      //Lotery goes here
+      #else
+
+      #ifdef CUSTOMSCHED
+      //Our scheduler goes here
+
+      #endif
+      #endif
+
     }
     release(&ptable.lock);
 
