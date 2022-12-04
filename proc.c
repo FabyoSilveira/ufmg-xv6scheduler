@@ -8,6 +8,9 @@
 #include "spinlock.h"
 #include "rand.h"
 
+#define NULL 0
+#define PRIO_INTERVAL_INCREMENT 10
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -18,7 +21,10 @@ static struct proc *initproc;
 int nextpid = 1;
 
 //Important to know when 5 ticks has passed to allow preemption
-int trackTick = 0;
+int trackIntervalPreemptionTick = 0;
+
+//Important to know when 10 ticks has passed to allow preemption
+int trackProcPriorityIncrementTick = 0;
 
 extern void forkret(void);
 extern void trapret(void);
@@ -94,6 +100,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->tickets = 10;
+  p->priority = 1;
   p->ctime = ticks;
   p->retime = 0;
   p->rutime = 0;
@@ -427,7 +434,39 @@ scheduler(void)
 
     #ifdef CUSTOMSCHED
     //Our scheduler goes here
+    struct proc *maxPrioProc = NULL;
+    float priorityMetric;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state == RUNNABLE){
+        if (maxPrioProc!=NULL){
+          //Compare the priority of the cur max, with the current loop process
+          //As priority grows with ready time, older procs will be executed and not starve
+          //Process with less tickets will have priority, allowing us to schedule with efficiency at user program level
+          priorityMetric = p->tickets/p->priority;
+          if(priorityMetric < maxPrioProc->tickets/maxPrioProc->priority)
+            maxPrioProc = p;
+        }
+        else
+          maxPrioProc = p;
+      }
+    }
+    //If a process with max priority has been found
+    if (maxPrioProc!=NULL){
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      //cprintf("IM THE MAX PRIO PROC TICKET - %d, PRIORITY - %d", maxPrioProc->tickets, maxPrioProc->priority);
+      c->proc = maxPrioProc;
+      switchuvm(maxPrioProc);
+      maxPrioProc->state = RUNNING;
 
+      swtch(&(c->scheduler), maxPrioProc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
     #endif
     #endif
     #endif
@@ -465,9 +504,9 @@ sched(void)
 void
 yield(void)
 {
-  if(ticks%INTERV == 0 && trackTick != ticks){  
+  if(ticks%INTERV == 0 && trackIntervalPreemptionTick != ticks){  
     //Since yield executes sometimes more than once per tick, need to track the last time ticks was fully divisible by 5, our preemption interval
-    trackTick = ticks;
+    trackIntervalPreemptionTick = ticks;
 
     acquire(&ptable.lock);  //DOC: yieldlock
     myproc()->state = RUNNABLE;
@@ -628,6 +667,10 @@ void updateRuReSTime() {
         curProc->stime++;
         break;
       case RUNNABLE:
+        if(ticks%PRIO_INTERVAL_INCREMENT == 0 && trackProcPriorityIncrementTick != ticks){
+          trackProcPriorityIncrementTick = ticks;
+          curProc->priority++;
+        }       
         curProc->retime++;
         break;
       case RUNNING:

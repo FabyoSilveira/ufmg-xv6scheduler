@@ -40,6 +40,10 @@ main(int argc, char *argv[])
 				case CPU_BOUND:
 					#ifdef LOTERY
 					set_tickets(100);
+					#else
+					#ifdef CUSTOMSCHED
+					set_tickets(100000000);
+					#endif
 					#endif
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 10000000; j++){}
@@ -52,6 +56,10 @@ main(int argc, char *argv[])
 				case S_CPU:
 					#ifdef LOTERY
 					set_tickets(100);
+					#else
+					#ifdef CUSTOMSCHED
+					set_tickets(1000000);
+					#endif
 					#endif
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 1000000; j++){}
@@ -65,6 +73,10 @@ main(int argc, char *argv[])
 				case IO_BOUND:
 					#ifdef LOTERY
 					set_tickets(100);
+					#else
+					#ifdef CUSTOMSCHED
+					set_tickets(1);
+					#endif
 					#endif
 					for(k = 0; k < 100; k++){
 						sleep(1);
