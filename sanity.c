@@ -8,29 +8,24 @@
 int
 main(int argc, char *argv[])
 {
-	if (argc != 2){
-    printf(1, "Usage: sanity <n>\n");
-    exit();
-  }
+	//Get n count from command line
+	int n;
+	n = atoi(argv[1]);
 
 	int i;
-	int n;
-	int j = 0;
+	int j;
 	int k;
+	int pid;
 	int retime;
 	int rutime;
 	int stime;
-	int sums[3][3];
+	int procStats[3][3];
   int flagSuccessGetChildInfo;
 
+	//Initialize proc stats structure before running the program
 	for (i = 0; i < 3; i++)
 		for (j = 0; j < 3; j++)
-			sums[i][j] = 0;
-
-	n = atoi(argv[1]);
-	i = n; //unimportant
-
-	int pid;
+			procStats[i][j] = 0;
 
 	for (i = 0; i < 3 * n; i++) {
 		j = i % 3;
@@ -39,73 +34,77 @@ main(int argc, char *argv[])
 		if (pid == 0) {//child
 			j = (getpid() - 4) % 3; // ensures independence from the first son's pid when gathering the results in the second part of the program
 			switch(j) {
-				case CPU_BOUND: //CPU‐bound process (CPU):
+				case CPU_BOUND:
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 1000000; j++){}
 					}
 
           wait2(&retime, &rutime, &stime);
-          printf(1, "CPU-bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
+          printf(1, "PID: %d - CPU-bound: Tempo de espera - %d, Tempo executando: %d, Tempo de IO: %d\n", getpid(), retime, rutime, stime);
 
 					break;
-				case S_CPU: //short tasks based CPU‐bound process (S‐CPU):
+				case S_CPU:
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 1000000; j++){}
 						yield();
 					}
 
           wait2(&retime, &rutime, &stime);
-          printf(1, "CPU-S bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
+					printf(1, "PID: %d - CPU-S bound,: Tempo de espera - %d, Tempo executando: %d, Tempo de IO: %d\n", getpid(), retime, rutime, stime);
 
 					break;
-				case IO_BOUND:// simulate I/O bound process (IO)
+				case IO_BOUND:
 					for(k = 0; k < 100; k++){
 						sleep(1);
 					}
 
           wait2(&retime, &rutime, &stime);
-          printf(1, "I/O bound, pid: %d, ready: %d, running: %d, sleeping: %d, turnaround: %d\n", getpid(), retime, rutime, stime, retime + rutime + stime);
+					printf(1, "PID: %d - I/O bound: Tempo de espera - %d, Tempo executando: %d, Tempo de IO: %d\n", getpid(), retime, rutime, stime);
 
 					break;
 			}
-			exit(); // children exit here
+			exit();
 		}
-		continue; // father continues to spawn the next child
+		continue;
 	}
 
 	for (i = 0; i < 3 * n; i++) {
 		flagSuccessGetChildInfo = getZombieChildsInfo(&retime, &rutime, &stime, &pid);
 
     if(flagSuccessGetChildInfo == 0){
-      int res = (pid - 4) % 3; // correlates to j in the dispatching loop
+      int res = (pid - 4) % 3;
 
       switch(res) {
-        case CPU_BOUND: // CPU bound processes
-          sums[0][0] += retime;
-          sums[0][1] += rutime;
-          sums[0][2] += stime;
+        case CPU_BOUND:
+          procStats[0][0] += retime;
+          procStats[0][1] += rutime;
+          procStats[0][2] += stime;
           break;
-        case S_CPU: // CPU bound processes, short tasks
-          sums[1][0] += retime;
-          sums[1][1] += rutime;
-          sums[1][2] += stime;
+        case S_CPU:
+          procStats[1][0] += retime;
+          procStats[1][1] += rutime;
+          procStats[1][2] += stime;
           break;
-        case IO_BOUND: // simulating I/O bound processes       
-          sums[2][0] += retime;
-          sums[2][1] += rutime;
-          sums[2][2] += stime;
+        case IO_BOUND:    
+          procStats[2][0] += retime;
+          procStats[2][1] += rutime;
+          procStats[2][2] += stime;
           break;
       }
     }	
 	}
 
+	//Get average stats for each proc type
 	for (i = 0; i < 3; i++)
 		for (j = 0; j < 3; j++)
-			sums[i][j] /= n;
+			procStats[i][j] /= n;
 
-	printf(1, "\n\nCPU bound:\nAverage ready time: %d\nAverage running time: %d\nAverage sleeping time: %d\nAverage turnaround time: %d\n\n\n", sums[0][0], sums[0][1], sums[0][2], sums[0][0] + sums[0][1] + sums[0][2]);
-	printf(1, "CPU-S bound:\nAverage ready time: %d\nAverage running time: %d\nAverage sleeping time: %d\nAverage turnaround time: %d\n\n\n", sums[1][0], sums[1][1], sums[1][2], sums[1][0] + sums[1][1] + sums[1][2]);
-	printf(1, "I/O bound:\nAverage ready time: %d\nAverage running time: %d\nAverage sleeping time: %d\nAverage turnaround time: %d\n\n\n", sums[2][0], sums[2][1], sums[2][2], sums[2][0] + sums[2][1] + sums[2][2]);
+	//CPU STATS
+	printf(1, "\n\nCPU bound:\nTempo médio ready: %d\nTempo médio running: %d\nTempo médio sleeping: %d\nTempo médio para completar: %d\n", procStats[0][0], procStats[0][1], procStats[0][2], procStats[0][0] + procStats[0][1] + procStats[0][2]);
+	//CPU-S STATS
+	printf(1, "\nCPU-S bound:\nTempo médio ready: %d\nTempo médio running: %d\nTempo médio sleeping: %d\nTempo médio para completar: %d\n", procStats[1][0], procStats[1][1], procStats[1][2], procStats[1][0] + procStats[1][1] + procStats[1][2]);
+	//I/O STATS
+	printf(1, "\nI/O bound:\nTempo médio ready: %d\nTempo médio running: %d\nTempo médio sleeping: %d\nTempo médio para completar: %d\n\n", procStats[2][0], procStats[2][1], procStats[2][2], procStats[2][0] + procStats[2][1] + procStats[2][2]);
 	
   exit();
 }
