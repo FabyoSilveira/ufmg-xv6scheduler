@@ -35,12 +35,14 @@ main(int argc, char *argv[])
 		pid = fork();
 
 		if (pid == 0) {//child
-			j = (getpid() - 4) % 3; // ensures independence from the first son's pid when gathering the results in the second part of the program
+			j = getpid() % 3; // ensures independence from the first son's pid when gathering the results in the second part of the program
 			switch(j) {
 				case CPU_BOUND:
+					#ifdef LOTERY
 					set_tickets(100);
+					#endif
 					for (k = 0; k < 100; k++){
-						for (j = 0; j < 1000000; j++){}
+						for (j = 0; j < 10000000; j++){}
 					}
 
           wait2(&retime, &rutime, &stime);
@@ -48,7 +50,9 @@ main(int argc, char *argv[])
 
 					break;
 				case S_CPU:
+					#ifdef LOTERY
 					set_tickets(100);
+					#endif
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 1000000; j++){}
 						yield();
@@ -59,7 +63,9 @@ main(int argc, char *argv[])
 
 					break;
 				case IO_BOUND:
+					#ifdef LOTERY
 					set_tickets(100);
+					#endif
 					for(k = 0; k < 100; k++){
 						sleep(1);
 					}
@@ -78,7 +84,7 @@ main(int argc, char *argv[])
 		flagSuccessGetChildInfo = getZombieChildsInfo(&retime, &rutime, &stime, &pid);
 
     if(flagSuccessGetChildInfo == 0){
-      int res = (pid - 4) % 3;
+      int res = pid % 3;
 
       switch(res) {
         case CPU_BOUND:
@@ -106,13 +112,13 @@ main(int argc, char *argv[])
 	for (i = 0; i < 3; i++)
 		for (j = 0; j < 3; j++){
 			switch(i){
-				case 0:
+				case CPU_BOUND:
 					procStats[i][j] /= countCPU;
 					break;
-				case 1:
+				case S_CPU:
 					procStats[i][j] /= countCPUS;
 					break;	
-				case 2:
+				case IO_BOUND:
 					procStats[i][j] /= countIO;
 					break;
 			}	

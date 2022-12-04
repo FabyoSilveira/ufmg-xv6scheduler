@@ -147,6 +147,19 @@ main(void)
   static char buf[100];
   int fd;
 
+  printf(1, "Política de escalonador selecionada: ");
+  #ifdef DEFAULT
+    printf(1, "DEFAULT XV6\n");
+  #else
+  #ifdef LOTERY
+    printf(1, "LOTERY SCHEDULER\n");
+  #else
+  #ifdef CUSTOMSCHED
+    printf(1, "CUSTOM SCHEDULER\n");
+  #endif
+  #endif
+  #endif
+
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
     if(fd >= 3){
