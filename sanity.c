@@ -21,6 +21,9 @@ main(int argc, char *argv[])
 	int stime;
 	int procStats[3][3];
   int flagSuccessGetChildInfo;
+	int countCPU = 0;
+	int countCPUS = 0;
+	int countIO = 0;
 
 	//Initialize proc stats structure before running the program
 	for (i = 0; i < 3; i++)
@@ -35,6 +38,7 @@ main(int argc, char *argv[])
 			j = (getpid() - 4) % 3; // ensures independence from the first son's pid when gathering the results in the second part of the program
 			switch(j) {
 				case CPU_BOUND:
+					set_tickets(100);
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 1000000; j++){}
 					}
@@ -44,6 +48,7 @@ main(int argc, char *argv[])
 
 					break;
 				case S_CPU:
+					set_tickets(100);
 					for (k = 0; k < 100; k++){
 						for (j = 0; j < 1000000; j++){}
 						yield();
@@ -54,6 +59,7 @@ main(int argc, char *argv[])
 
 					break;
 				case IO_BOUND:
+					set_tickets(100);
 					for(k = 0; k < 100; k++){
 						sleep(1);
 					}
@@ -76,28 +82,42 @@ main(int argc, char *argv[])
 
       switch(res) {
         case CPU_BOUND:
+					countCPU++;
           procStats[0][0] += retime;
           procStats[0][1] += rutime;
           procStats[0][2] += stime;
           break;
         case S_CPU:
+					countCPUS++;
           procStats[1][0] += retime;
           procStats[1][1] += rutime;
           procStats[1][2] += stime;
           break;
         case IO_BOUND:    
-          procStats[2][0] += retime;
+          countIO++;
+					procStats[2][0] += retime;
           procStats[2][1] += rutime;
           procStats[2][2] += stime;
           break;
       }
     }	
 	}
-
 	//Get average stats for each proc type
 	for (i = 0; i < 3; i++)
-		for (j = 0; j < 3; j++)
-			procStats[i][j] /= n;
+		for (j = 0; j < 3; j++){
+			switch(i){
+				case 0:
+					procStats[i][j] /= countCPU;
+					break;
+				case 1:
+					procStats[i][j] /= countCPUS;
+					break;	
+				case 2:
+					procStats[i][j] /= countIO;
+					break;
+			}	
+		}
+			
 
 	//CPU STATS
 	printf(1, "\n\nCPU bound:\nTempo médio ready: %d\nTempo médio running: %d\nTempo médio sleeping: %d\nTempo médio para completar: %d\n", procStats[0][0], procStats[0][1], procStats[0][2], procStats[0][0] + procStats[0][1] + procStats[0][2]);
@@ -105,6 +125,5 @@ main(int argc, char *argv[])
 	printf(1, "\nCPU-S bound:\nTempo médio ready: %d\nTempo médio running: %d\nTempo médio sleeping: %d\nTempo médio para completar: %d\n", procStats[1][0], procStats[1][1], procStats[1][2], procStats[1][0] + procStats[1][1] + procStats[1][2]);
 	//I/O STATS
 	printf(1, "\nI/O bound:\nTempo médio ready: %d\nTempo médio running: %d\nTempo médio sleeping: %d\nTempo médio para completar: %d\n\n", procStats[2][0], procStats[2][1], procStats[2][2], procStats[2][0] + procStats[2][1] + procStats[2][2]);
-	
-  exit();
+	exit();
 }

@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "rand.h"
 
 struct {
   struct spinlock lock;
@@ -92,7 +93,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->tickets = 5;
+  p->tickets = 10;
   p->ctime = ticks;
   p->retime = 0;
   p->rutime = 0;
@@ -320,6 +321,21 @@ wait(void)
   }
 }
 
+int lottery_Total(void){
+  struct proc *p;
+  int ticket_aggregate=0;
+
+  //increment total tickets on runnable processes
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if(p->state==RUNNABLE){
+      ticket_aggregate+=p->tickets;
+    }
+  }
+
+  return ticket_aggregate;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -333,10 +349,15 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  c->proc = 0;
-  #ifdef DEFAULT
-  cprintf("\nFUNCIONOU\n");
+
+  #ifdef LOTERY
+  int count = 0;
+  long golden_ticket = 0;
+  int total_no_tickets = 0;
   #endif
+
+  c->proc = 0;
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -344,8 +365,10 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
+    
+    //If no scheduler was chosen run the default, need to make ifdef work
+    #ifdef DEFAULT
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      //If no scheduler was chosen run the default, need to make ifdef work
       if(p->state != RUNNABLE)
         continue;
 
@@ -362,20 +385,53 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-
-      #ifdef LOTERY
-      //Lotery goes here
-      #else
-
-      #ifdef CUSTOMSCHED
-      //Our scheduler goes here
-
-      #endif
-      #endif
-
     }
-    release(&ptable.lock);
+    #else
 
+    #ifdef LOTERY
+    golden_ticket = 0;
+    count = 0;
+    total_no_tickets = 0;
+    
+    //get total number of runnable processes
+    total_no_tickets = lottery_Total();
+
+    //random ticket
+    golden_ticket = random_at_most(total_no_tickets);
+
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
+
+      //get the random winning ticket process
+      if ((count + p->tickets) < golden_ticket){
+        count += p->tickets;
+        continue;
+      }
+
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      break;
+    }
+    #else
+
+    #ifdef CUSTOMSCHED
+    //Our scheduler goes here
+
+    #endif
+    #endif
+    #endif
+    release(&ptable.lock);
   }
 }
 
