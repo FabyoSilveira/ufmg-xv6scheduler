@@ -35,7 +35,7 @@ main(int argc, char *argv[])
 		pid = fork();
 
 		if (pid == 0) {//child
-			j = getpid() % 3; // ensures independence from the first son's pid when gathering the results in the second part of the program
+			j = getpid() % 3;
 			switch(j) {
 				case CPU_BOUND:
 					#ifdef LOTERY
